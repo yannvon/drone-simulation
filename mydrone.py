@@ -158,6 +158,7 @@ def draw_objects():
     global scalex, scaley  # scale factor between out picture and the tileServer
     #FIXME added variables
     global theta
+    global ax, ay, vx, vy
 
     #tkwindow.canvas.move( objectId, int(tx-MYRADIUS)-oldp[0],int(ty-MYRADIUS)-oldp[1] )
     if unmoved: 
@@ -165,6 +166,7 @@ def draw_objects():
         unmoved=0
         tx,ty = 0,0
         theta = 0
+        ax, ay, vx, vy = 0,0,0,0
     else: 
         # draw the line showing the path
         tkwindow.polyline([oldp,[oldp[0]+tx,oldp[1]+ty]], style=5, tags=["path"]  )
@@ -217,11 +219,23 @@ def draw_objects():
     # Code to move the drone can go here
     # Move a small amount by changing tx,ty
 
+
     #Method1: Brownian Algorithm
+    tx = random.uniform(8,-8)
+    ty = random.uniform(8,-8)
+
+    ax = min(max(ax + random.uniform(5,-5), -5),5)
+    ay = min(max(ay + random.uniform(5,-5), -5),5)
+    vx = min(max(vx + ax, -5), 5)
+    vy = min(max(vy + ay, -5), 5)
+    tx = vx
+    ty = vy
+
+
 
     #tx = random.uniform(-10,10)
     #ty = random.uniform(-10,10)
-    #Method2: Simple Boushpedonic sweeping
+    #Method2: Simple Boustrophedon sweeping
     #tx = 1
     #ty = 25*math.cos(theta)
     #theta = theta + 0.1;
