@@ -37,7 +37,7 @@ import loader
 ###############################################################################
 # Compute a PCA (eigenfunctionImages) on the dataset (treated as unlabeled
 # dataset): unsupervised feature extraction / dimensionality reduction
-n_components = 2
+n_components = 13
 # Use color images
 color=1
 # enable extra debugging?
@@ -341,7 +341,7 @@ def loadState(loadStateFile, versionNumber):
 
 if __name__ == '__main__':
     if len(sys.argv)>1 and sys.argv[1]=="-test":
-        pca, clf,classnames = generate_and_train_classifier("classes",verbose=0)
+        pca, clf,classnames = generate_and_train_classifier("classes",verbose=1) #FIXME verbose to 0?
         sys.exit(0)
     if len(sys.argv)>2 and sys.argv[1]=="-classify":
         pca, clf, classnames = loadState("classifier.state", versionNumber)

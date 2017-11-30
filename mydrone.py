@@ -104,6 +104,7 @@ if missing:
      print fix
      sys.exit(1)
 
+#FIXME
 version = "Greg's drone v%.1f  $HGdate: Fri, 24 Nov 2017 09:38:37 -0500 $ $Revision: f330eb3280c9 Local rev 2 $" % versionNumber
 
 print version
@@ -155,12 +156,15 @@ def draw_objects():
     global actual_pX, actual_pY
     global fill
     global scalex, scaley  # scale factor between out picture and the tileServer
+    #FIXME added variables
+    global theta
 
     #tkwindow.canvas.move( objectId, int(tx-MYRADIUS)-oldp[0],int(ty-MYRADIUS)-oldp[1] )
     if unmoved: 
         # initialize on first time we get here
         unmoved=0
         tx,ty = 0,0
+        theta = 0
     else: 
         # draw the line showing the path
         tkwindow.polyline([oldp,[oldp[0]+tx,oldp[1]+ty]], style=5, tags=["path"]  )
@@ -177,6 +181,19 @@ def draw_objects():
     im, foox, fooy, fname = ts.tiles_as_image_from_corr(lat, lon, zoomLevel, 1, 1, 0, 0)
 
     # Use the classifier here on the image "im"
+    # FIXME
+    class_index, class_str = geoclass.classifyOne(pca, clf, np.asarray(im, dtype=np.float32).flatten(), classnames)
+    print(class_str)
+
+
+
+    # print text to show the classification of the tile
+    # original array ['arable' 'desert' 'urban' 'water']
+    #text = classnames[class_index]
+    text = ("A", "D", "U", "W")[class_index]
+    color = ("white", "yellow", "red", "blue")[class_index]
+
+    tkwindow.canvas.create_text(256/scalex*int(oldp[0]/(256/scalex))+10, 256/scalex*int(oldp[1]/(256/scalex))+10, fill=color, text=text)
 
     # This is the drone, let's move it around
     tkwindow.canvas.itemconfig(objectId, tag='userball', fill=fill)
@@ -186,6 +203,7 @@ def draw_objects():
     im = im.resize((int(im.size[0]/scalex),int(im.size[1]/scaley)))
     im.save("/tmp/locationtile.gif")
     photo = tk.PhotoImage(file="/tmp/locationtile.gif" )
+
     tkwindow.image = tkwindow.canvas.create_image( 256/scalex*int(oldp[0]/(256/scalex)), 256/scalex*int(oldp[1]/(256/scalex)), anchor=tk.NW, image=photo, tags=["tile"] )
     image_storage.append( photo ) # need to save to avoid garbage collection
 
@@ -198,9 +216,15 @@ def draw_objects():
 
     # Code to move the drone can go here
     # Move a small amount by changing tx,ty
-    tx = 1
-    ty = 1
 
+    #Method1: Brownian Algorithm
+
+    #tx = random.uniform(-10,10)
+    #ty = random.uniform(-10,10)
+    #Method2: Simple Boushpedonic sweeping
+    #tx = 1
+    #ty = 25*math.cos(theta)
+    #theta = theta + 0.1;
 
 # MAIN CODE. NO REAL NEED TO CHANGE THIS
 
@@ -209,6 +233,8 @@ ts = TileServer.TileServer()
 # Top-left corner of region we can see
 
 lat, lon = 45.44203, -73.602995    # verdun
+#lat, lon = 45.554925, -73.701590  # Boulevard Cartier O, Laval, H7N
+#FIXME
 
 # Size of region we can see, measure in 256-goepixel tiles.  Geopixel tiles are what
 # Google maps, bing, etc use to represent the earth.  They make up the atlas.
@@ -231,10 +257,10 @@ bigpic = Image.new("RGB", (256*tilesX, 256*tilesY), "white")
 bigpic.paste(actual, (0,0))  # paste the actual map over the pic.
 
 # How to draw a rectangle.
-# You should delete or comment out the next 3 lines.
-draw = ImageDraw.Draw(bigpic)
-xt,yt = 0,0
-draw.rectangle(((xt*256-1, yt*256-1), (xt*256+256+1, yt*256+256+1)), fill="red")
+# You should delete or comment out the next 3 lines.    #FIXME
+#draw = ImageDraw.Draw(bigpic)
+#xt,yt = 0,0
+#draw.rectangle(((xt*256-1, yt*256-1), (xt*256+256+1, yt*256+256+1)), fill="red")
 
 # put in image
 
