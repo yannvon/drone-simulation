@@ -156,9 +156,10 @@ def draw_objects():
     global actual_pX, actual_pY
     global fill
     global scalex, scaley  # scale factor between out picture and the tileServer
-    #FIXME added variables
+    #FIXME added variables for different Methods
     global theta
     global ax, ay, vx, vy
+    global backtrack
 
     #tkwindow.canvas.move( objectId, int(tx-MYRADIUS)-oldp[0],int(ty-MYRADIUS)-oldp[1] )
     if unmoved: 
@@ -167,6 +168,7 @@ def draw_objects():
         tx,ty = 0,0
         theta = 0
         ax, ay, vx, vy = 0,0,0,0
+        backtrack = 0
     else: 
         # draw the line showing the path
         tkwindow.polyline([oldp,[oldp[0]+tx,oldp[1]+ty]], style=5, tags=["path"]  )
@@ -186,8 +188,6 @@ def draw_objects():
     # FIXME
     class_index, class_str = geoclass.classifyOne(pca, clf, np.asarray(im, dtype=np.float32).flatten(), classnames)
     print(class_str)
-
-
 
     # print text to show the classification of the tile
     # original array ['arable' 'desert' 'urban' 'water']
@@ -221,7 +221,7 @@ def draw_objects():
 
 
     #Method1: Brownian Algorithm
-    tx = random.uniform(8,-8)
+    '''tx = random.uniform(8,-8)
     ty = random.uniform(8,-8)
 
     ax = min(max(ax + random.uniform(5,-5), -5),5)
@@ -230,15 +230,41 @@ def draw_objects():
     vy = min(max(vy + ay, -5), 5)
     tx = vx
     ty = vy
+    '''
 
 
-
-    #tx = random.uniform(-10,10)
-    #ty = random.uniform(-10,10)
     #Method2: Simple Boustrophedon sweeping
-    #tx = 1
-    #ty = 25*math.cos(theta)
-    #theta = theta + 0.1;
+    '''
+    tx = -1
+    ty = 25*math.cos(theta)
+    theta = theta + 0.1;
+    '''
+
+    #Method3: Stupid Lawn Mover Copy
+    #Idea: pick a direction and go straight, once you detect urban area, or the border of the map
+    #      pick a new direction and go straight again.
+
+    cruising_speed = 5
+    backtrack_duration = 10;
+
+    #Change cruising direction in case we hit border
+    city = class_index == 2
+    out_of_bounds = oldp[0] >= 1024 or oldp[0] <= 0 or oldp[1] >= 1024 or oldp[1] <= 0
+    takeoff = theta == 0
+    end_off_backtrack = backtrack == 1
+
+    if backtrack > 1:
+       backtrack -= 1
+    elif takeoff or end_off_backtrack:
+        backtrack = 0
+        theta = random.uniform(0, 2 * math.pi)
+    elif city or out_of_bounds:
+        backtrack = backtrack_duration
+        theta += math.pi  # go into opposite direction
+
+    tx = cruising_speed * math.sin(theta)
+    ty = cruising_speed * math.cos(theta)
+
 
 # MAIN CODE. NO REAL NEED TO CHANGE THIS
 
@@ -305,7 +331,7 @@ MARK="mark"
 
 # Place our simulated drone on the map
 sx,sy=600,640 # over the river
-sx,sy = 220,280 # over the canal in Verdun, mixed environment
+#sx,sy = 220,280 # over the canal in Verdun, mixed environment
 oldp = [sx,sy]
 objectId = tkwindow.canvas.create_oval(int(sx-MYRADIUS),int(sy-MYRADIUS), int(sx+MYRADIUS),int(sy+MYRADIUS),tag=MARK)
 unmoved =  1
