@@ -11,6 +11,8 @@ import os.path
 import Tkinter as tk
 import sys
 import Tkinter as tk
+from sets import Set
+import tkFont
 
 from PIL import ImageFilter
 import TileServer
@@ -105,7 +107,7 @@ if missing:
      sys.exit(1)
 
 #FIXME
-version = "Greg's drone v%.1f  $HGdate: Fri, 24 Nov 2017 09:38:37 -0500 $ $Revision: f330eb3280c9 Local rev 2 $" % versionNumber
+version = "Yann's drone v%.1f  $HGdate: Fri, 2 Dec 2017 09:38:37 -0500 $ $Revision: f330eb3280c9 Local rev 2 $" % versionNumber
 
 print version
 print " ".join(sys.argv)
@@ -138,6 +140,7 @@ while len(sys.argv)>1:
 # my position
 tx,ty = 0.5,0.5 # This is the translation to use to move the drone
 oldp = [tx,ty]  # Last point visited
+max_path_length = 10000
 
 fill = "white"
 image_storage = [ ] # list of image objects to avoid memory being disposed of
@@ -160,6 +163,10 @@ def draw_objects():
     global theta
     global ax, ay, vx, vy
     global backtrack
+    global old_tile_x, old_tile_y
+    global totalTileChanges
+    global allTiles
+    global total_path_length
 
     #tkwindow.canvas.move( objectId, int(tx-MYRADIUS)-oldp[0],int(ty-MYRADIUS)-oldp[1] )
     if unmoved: 
@@ -169,6 +176,10 @@ def draw_objects():
         theta = 0
         ax, ay, vx, vy = 0,0,0,0
         backtrack = 0
+        old_tile_x, old_tile_y = -1,-1
+        allTiles = Set()
+        totalTileChanges = 0
+        total_path_length = 0
     else: 
         # draw the line showing the path
         tkwindow.polyline([oldp,[oldp[0]+tx,oldp[1]+ty]], style=5, tags=["path"]  )
@@ -187,7 +198,6 @@ def draw_objects():
     # Use the classifier here on the image "im"
     # FIXME
     class_index, class_str = geoclass.classifyOne(pca, clf, np.asarray(im, dtype=np.float32).flatten(), classnames)
-    print(class_str)
 
     # print text to show the classification of the tile
     # original array ['arable' 'desert' 'urban' 'water']
@@ -219,6 +229,13 @@ def draw_objects():
     # Code to move the drone can go here
     # Move a small amount by changing tx,ty
 
+    # Part1: Check if we are on a different tile
+    new_tile_x = 256/scalex*int(oldp[0]/(256/scalex))
+    new_tile_y = 256/scalex*int(oldp[1]/(256/scalex))
+    tile_change = new_tile_x != old_tile_x or new_tile_y != old_tile_y
+    if tile_change:
+        allTiles.add((new_tile_x, new_tile_y))
+        totalTileChanges += 1
 
     #Method1: Brownian Algorithm
     '''tx = random.uniform(8,-8)
@@ -243,13 +260,13 @@ def draw_objects():
     #Method3: Stupid Lawn Mover Copy
     #Idea: pick a direction and go straight, once you detect urban area, or the border of the map
     #      pick a new direction and go straight again.
-
+    '''
     cruising_speed = 5
-    backtrack_duration = 10;
+    backtrack_duration = 5;
 
-    #Change cruising direction in case we hit border
+    #Change cruising direction in case we hit border or city
     city = class_index == 2
-    out_of_bounds = oldp[0] >= 1024 or oldp[0] <= 0 or oldp[1] >= 1024 or oldp[1] <= 0
+    out_of_bounds = oldp[0] >= myImageSize or oldp[0] <= 0 or oldp[1] >= myImageSize or oldp[1] <= 0
     takeoff = theta == 0
     end_off_backtrack = backtrack == 1
 
@@ -265,6 +282,54 @@ def draw_objects():
     tx = cruising_speed * math.sin(theta)
     ty = cruising_speed * math.cos(theta)
 
+    '''
+    #Method4: Same as above without backtracking
+    cruising_speed = 5
+
+    # Change cruising direction in case we hit border or city
+    city = class_index == 2
+    out_of_bounds = oldp[0] >= myImageSize or oldp[0] <= 0 or oldp[1] >= myImageSize or oldp[1] <= 0
+    takeoff = theta == 0
+
+    # Here we suppose small movements (i.e it is not possible to enter a tile from two directions.
+    # This is not quite true as this situation arrises occasionaly however it doesn't affect the outcome greatly
+
+    if takeoff:
+        theta = random.uniform(0, 2 * math.pi)
+
+    elif tile_change and (city or out_of_bounds or takeoff):
+
+        #came from left
+        if old_tile_x < new_tile_x:
+            theta = random.uniform(-math.pi / 2, math.pi / 2)
+        # came from right
+        if old_tile_x > new_tile_x:
+            theta = random.uniform(math.pi / 2, 3.0/2.0 *math.pi)
+        # came from top
+        if old_tile_y < new_tile_y:
+            theta = random.uniform(0, math.pi)
+        # came from left
+        if old_tile_y > new_tile_y:
+            theta = random.uniform(math.pi, 2.0 * math.pi)
+
+    tx = cruising_speed * math.sin(theta)
+    ty = cruising_speed * math.cos(theta)
+
+    # COMMON PART TO ALL ALGORITHMS: Limit path length to a certain distance for comparison and output stats
+    old_tile_x = new_tile_x
+    old_tile_y = new_tile_y
+    print(total_path_length)
+    if total_path_length > max_path_length:
+        tx, ty = 0,0
+        font = tkFont.Font(size='20')
+        tkwindow.canvas.create_text(200,
+                                    100, fill='white',
+                                    font = font,
+                                    text="Simulation over.\nUnique tiles visited: %d\nTotal tiles visited: %d\nRatio: %f"
+                                         % (len(allTiles), totalTileChanges, len(allTiles) / float(totalTileChanges)))
+    else:
+        total_path_length += math.sqrt(tx ** 2 + ty ** 2)
+
 
 # MAIN CODE. NO REAL NEED TO CHANGE THIS
 
@@ -272,9 +337,9 @@ ts = TileServer.TileServer()
 
 # Top-left corner of region we can see
 
-lat, lon = 45.44203, -73.602995    # verdun
-#lat, lon = 45.554925, -73.701590  # Boulevard Cartier O, Laval, H7N
-#FIXME
+#lat, lon = 45.44203, -73.602995    # verdun
+lat, lon = 45.554925, -73.701590  # Boulevard Cartier O, Laval, H7N
+
 
 # Size of region we can see, measure in 256-goepixel tiles.  Geopixel tiles are what
 # Google maps, bing, etc use to represent the earth.  They make up the atlas.
