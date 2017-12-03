@@ -173,7 +173,7 @@ def draw_objects():
         # initialize on first time we get here
         unmoved=0
         tx,ty = 0,0
-        theta = 0
+        theta = math.pi / 2
         ax, ay, vx, vy = 0,0,0,0
         backtrack = 0
         old_tile_x, old_tile_y = -1,-1
@@ -297,20 +297,30 @@ def draw_objects():
     if takeoff:
         theta = random.uniform(0, 2 * math.pi)
 
-    elif tile_change and (city or out_of_bounds or takeoff):
+    elif city or out_of_bounds:
 
         #came from left
-        if old_tile_x < new_tile_x:
-            theta = random.uniform(-math.pi / 2, math.pi / 2)
-        # came from right
-        if old_tile_x > new_tile_x:
-            theta = random.uniform(math.pi / 2, 3.0/2.0 *math.pi)
-        # came from top
-        if old_tile_y < new_tile_y:
-            theta = random.uniform(0, math.pi)
-        # came from left
-        if old_tile_y > new_tile_y:
+        if old_tile_x < new_tile_x or oldp[0] >= myImageSize:
             theta = random.uniform(math.pi, 2.0 * math.pi)
+            print('from left')
+        # came from right
+        elif old_tile_x > new_tile_x or oldp[0] <= 0 :
+            print('from right')
+            theta = random.uniform(0, math.pi)
+        # came from top
+        elif old_tile_y < new_tile_y or oldp[1] >= myImageSize:
+            theta = random.uniform(math.pi / 2, 3.0/2.0 *math.pi)
+            print('from top')
+        # came from bottom
+        elif old_tile_y > new_tile_y or oldp[1] <= 0:
+            theta = random.uniform(-math.pi / 2, math.pi / 2)
+            print('from bot')
+
+    if(out_of_bounds and not tile_change):
+        print('woah no tile change to out of bounds')
+
+    if(out_of_bounds):
+        print('out of bounds')
 
     tx = cruising_speed * math.sin(theta)
     ty = cruising_speed * math.cos(theta)
@@ -337,8 +347,8 @@ ts = TileServer.TileServer()
 
 # Top-left corner of region we can see
 
-#lat, lon = 45.44203, -73.602995    # verdun
-lat, lon = 45.554925, -73.701590  # Boulevard Cartier O, Laval, H7N
+lat, lon = 45.44203, -73.602995    # verdun
+#lat, lon = 45.554925, -73.701590  # Boulevard Cartier O, Laval, H7N
 
 
 # Size of region we can see, measure in 256-goepixel tiles.  Geopixel tiles are what
