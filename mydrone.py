@@ -140,7 +140,7 @@ while len(sys.argv)>1:
 # my position
 tx,ty = 0.5,0.5 # This is the translation to use to move the drone
 oldp = [tx,ty]  # Last point visited
-max_path_length = 10000
+max_path_length = 50000
 
 fill = "white"
 image_storage = [ ] # list of image objects to avoid memory being disposed of
@@ -167,12 +167,16 @@ def draw_objects():
     global totalTileChanges
     global allTiles
     global total_path_length
+    global goRight
+    global wall_found
+    global tmp_tiles, visited_tiles
+    global first_tile_of_circuit
 
     #tkwindow.canvas.move( objectId, int(tx-MYRADIUS)-oldp[0],int(ty-MYRADIUS)-oldp[1] )
-    if unmoved: 
+    if unmoved:
         # initialize on first time we get here
         unmoved=0
-        tx,ty = 0,0
+        tx,ty = 5,0 #FIXME for algo 5 set to speed
         theta = math.pi / 2
         ax, ay, vx, vy = 0,0,0,0
         backtrack = 0
@@ -180,7 +184,12 @@ def draw_objects():
         allTiles = Set()
         totalTileChanges = 0
         total_path_length = 0
-    else: 
+        goRight = 0
+        wall_found = 0
+        tmp_tiles = set()
+        visited_tiles = set()
+        first_tile_of_circuit = (-1,-1)
+    else:
         # draw the line showing the path
         tkwindow.polyline([oldp,[oldp[0]+tx,oldp[1]+ty]], style=5, tags=["path"]  )
         tkwindow.canvas.move( objectId, tx,ty )
@@ -284,6 +293,7 @@ def draw_objects():
 
     '''
     #Method4: Same as above without backtracking
+    '''
     cruising_speed = 5
 
     # Change cruising direction in case we hit border or city
@@ -324,11 +334,61 @@ def draw_objects():
 
     tx = cruising_speed * math.sin(theta)
     ty = cruising_speed * math.cos(theta)
+    
+    '''
+    # Method 5: deterministic "hand on wall " lawnmover " algorithm (spiral shape)
+    # Note: This algorithm corresponds to what I would personally do when moving the lawn,
+    #       the other option would be a boustrophedon back and forth coverage.
+    #       The running time can be exponentially worse than optimal,
+    #       for example when two small patches are connected by a long one tile wide path.
+    #       Nonetheless since in most cases it avoids passing twice at the same place it should
+    #       not be too bad in practice.
+
+    city = class_index == 2
+    out_of_bounds = oldp[0] >= 1020 or oldp[0] <= 0 or oldp[1] >= 1020 or oldp[1] <= 0
+
+    #Backtrack one step if out_of bounds
+    print(new_tile_x, new_tile_y)
+    if (city or out_of_bounds or (new_tile_x, new_tile_y) in visited_tiles) and not backtrack:
+        if not wall_found:
+            first_tile_of_circuit = (old_tile_x, old_tile_y)#fixme
+            print("FIRST TILE OF CIRCUIT", first_tile_of_circuit)
+
+        tx = -tx
+        ty = -ty
+        goRight = 40
+        wall_found = 1
+        backtrack = 3
+
+
+    #Try to go right all the time
+    if wall_found and (backtrack == 1 or goRight < 0) :
+        old_ty = ty
+        ty = tx
+        tx = -old_ty
+        goRight = 51.2
+        backtrack = 0
+    else:
+        goRight -= math.sqrt(tx**2 + ty**2)
+        backtrack = max(0, backtrack - 1)
+
+    if not backtrack and tile_change and (new_tile_x, new_tile_y) == first_tile_of_circuit:
+        visited_tiles = visited_tiles.union(tmp_tiles)
+        visited_tiles.remove((old_tile_x, old_tile_y))
+        tmp_tiles = set()
+        #first_tile_of_circuit = (old_tile_x, old_tile_y) FIXME
+        print("back to the start!")
+        tx = -tx
+        ty = -ty
+        backtrack = 3
+
+    if wall_found and tile_change:
+        tmp_tiles.add((new_tile_x, new_tile_y))
+
 
     # COMMON PART TO ALL ALGORITHMS: Limit path length to a certain distance for comparison and output stats
     old_tile_x = new_tile_x
     old_tile_y = new_tile_y
-    print(total_path_length)
     if total_path_length > max_path_length:
         tx, ty = 0,0
         font = tkFont.Font(size='20')
