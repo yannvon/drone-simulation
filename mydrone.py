@@ -140,7 +140,7 @@ while len(sys.argv)>1:
 # my position
 tx,ty = 0.5,0.5 # This is the translation to use to move the drone
 oldp = [tx,ty]  # Last point visited
-max_path_length = 50000
+max_path_length = 30000
 
 fill = "white"
 image_storage = [ ] # list of image objects to avoid memory being disposed of
@@ -163,7 +163,8 @@ def draw_objects():
     global theta
     global ax, ay, vx, vy
     global backtrack
-    global old_tile_x, old_tile_y
+    global previous1_tile_x, previous1_tile_y
+    global previous2_tile_x, previous2_tile_y
     global totalTileChanges
     global allTiles
     global total_path_length
@@ -176,11 +177,11 @@ def draw_objects():
     if unmoved:
         # initialize on first time we get here
         unmoved=0
-        tx,ty = 5,0 #FIXME for algo 5 set to speed
+        tx,ty = 10,0 #FIXME for algo 5 set to speed
         theta = math.pi / 2
         ax, ay, vx, vy = 0,0,0,0
         backtrack = 0
-        old_tile_x, old_tile_y = -1,-1
+        previous1_tile_x, previous1_tile_y, previous2_tile_x, previous2_tile_y = -1,-1,-1,-1
         allTiles = Set()
         totalTileChanges = 0
         total_path_length = 0
@@ -241,7 +242,7 @@ def draw_objects():
     # Part1: Check if we are on a different tile
     new_tile_x = 256/scalex*int(oldp[0]/(256/scalex))
     new_tile_y = 256/scalex*int(oldp[1]/(256/scalex))
-    tile_change = new_tile_x != old_tile_x or new_tile_y != old_tile_y
+    tile_change = new_tile_x != previous1_tile_x or new_tile_y != previous1_tile_y
     if tile_change:
         allTiles.add((new_tile_x, new_tile_y))
         totalTileChanges += 1
@@ -257,7 +258,6 @@ def draw_objects():
     tx = vx
     ty = vy
     '''
-
 
     #Method2: Simple Boustrophedon sweeping
     '''
@@ -292,7 +292,7 @@ def draw_objects():
     ty = cruising_speed * math.cos(theta)
 
     '''
-    #Method4: Same as above without backtracking
+    #Method4: Same as above but doesn't go back to same wall and thus no backtracking necessary
     '''
     cruising_speed = 5
 
@@ -351,44 +351,47 @@ def draw_objects():
     print(new_tile_x, new_tile_y)
     if (city or out_of_bounds or (new_tile_x, new_tile_y) in visited_tiles) and not backtrack:
         if not wall_found:
-            first_tile_of_circuit = (old_tile_x, old_tile_y)#fixme
+            first_tile_of_circuit = (previous1_tile_x, previous1_tile_y)#fixme
             print("FIRST TILE OF CIRCUIT", first_tile_of_circuit)
-
         tx = -tx
         ty = -ty
-        goRight = 40
+        goRight = 35
         wall_found = 1
-        backtrack = 3
+        backtrack = 2
 
+    if not backtrack and tile_change and (new_tile_x, new_tile_y) == first_tile_of_circuit and len(tmp_tiles) > 10:
+        visited_tiles = visited_tiles.union(tmp_tiles)
+        visited_tiles.remove((previous1_tile_x, previous1_tile_y))
+        tmp_tiles = set()
+        first_tile_of_circuit = (previous1_tile_x, previous1_tile_y)
+        print("back to the start!")
+        tx = -tx
+        ty = -ty
+        backtrack = 2
 
     #Try to go right all the time
     if wall_found and (backtrack == 1 or goRight < 0) :
         old_ty = ty
         ty = tx
         tx = -old_ty
-        goRight = 51.2
+        goRight = 35
         backtrack = 0
     else:
         goRight -= math.sqrt(tx**2 + ty**2)
         backtrack = max(0, backtrack - 1)
 
-    if not backtrack and tile_change and (new_tile_x, new_tile_y) == first_tile_of_circuit:
-        visited_tiles = visited_tiles.union(tmp_tiles)
-        visited_tiles.remove((old_tile_x, old_tile_y))
-        tmp_tiles = set()
-        #first_tile_of_circuit = (old_tile_x, old_tile_y) FIXME
-        print("back to the start!")
-        tx = -tx
-        ty = -ty
-        backtrack = 3
 
     if wall_found and tile_change:
         tmp_tiles.add((new_tile_x, new_tile_y))
+        # Note possible improvement: remove tile if we pass it in the opposite direction,
+        #       since that would imply that we possible need this path to get to a larger patch that wasn't discovered yet!
 
 
     # COMMON PART TO ALL ALGORITHMS: Limit path length to a certain distance for comparison and output stats
-    old_tile_x = new_tile_x
-    old_tile_y = new_tile_y
+    previous2_tile_x = previous1_tile_x
+    previous2_tile_y = previous1_tile_y
+    previous1_tile_x = new_tile_x
+    previous1_tile_y = new_tile_y
     if total_path_length > max_path_length:
         tx, ty = 0,0
         font = tkFont.Font(size='20')
