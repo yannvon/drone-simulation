@@ -20,7 +20,7 @@ import geoclass
 
 debug = 0  # debug 1 or 2 means using a very simplified setup
 verbose=0  # print info (can be set on command line)
-versionNumber = 1.0
+versionNumber = 42.0
 zoomLevel = 18
 loadStateFile = 'classifier.state'  # default file for classifier data
 
@@ -28,7 +28,6 @@ documentation = \
 """
   This program is a stub for your COMP 417 robotics assignment.
 """
-
 
 
 
@@ -107,7 +106,7 @@ if missing:
      sys.exit(1)
 
 #FIXME
-version = "Yann's drone v%.1f  $HGdate: Fri, 2 Dec 2017 09:38:37 -0500 $ $Revision: f330eb3280c9 Local rev 2 $" % versionNumber
+version = "Yann's drone v%.1f  $HGdate: Tue, 5 Dec 2017 09:38:37 -0500 $ $Revision: f330eb3280c9 Local rev 2 $" % versionNumber
 
 print version
 print " ".join(sys.argv)
@@ -140,7 +139,7 @@ while len(sys.argv)>1:
 # my position
 tx,ty = 0.5,0.5 # This is the translation to use to move the drone
 oldp = [tx,ty]  # Last point visited
-max_path_length = 20000
+max_path_length = 200
 
 # Added Variables common to all Algorithms
 fill = "white"
@@ -149,17 +148,17 @@ previous_tile_x, previous_tile_y = -1,-1
 total_path_length = 0
 all_tiles = set()
 total_tile_changes = 0
+classification_count = [0,0,0,0]
 
 # Added Variables for simple random Algorithms (1-2)
 theta = math.pi / 2
 ax, ay, vx, vy = 0, 0, 0, 0
 
-
 # Added Variables for wallFollower Algorithm (3)
 tmp_tiles = set()
 wall_found = 0
 backtrack = 0
-visited_tiles = set()
+tiles_to_avoid = set()
 first_tile_of_circuit = (-1,-1)
 goRight = 0
 
@@ -178,11 +177,11 @@ def draw_objects():
     global actual_pX, actual_pY
     global fill
     global scalex, scaley  # scale factor between out picture and the tileServer
-    #Added variables useful for different Algorithms
     global previous_tile_x, previous_tile_y
     global total_tile_changes
     global all_tiles
     global total_path_length
+    global classification_count
 
     #tkwindow.canvas.move( objectId, int(tx-MYRADIUS)-oldp[0],int(ty-MYRADIUS)-oldp[1] )
     if unmoved:
@@ -225,7 +224,7 @@ def draw_objects():
     im.save("/tmp/locationtile.gif")
     photo = tk.PhotoImage(file="/tmp/locationtile.gif" )
 
-    tkwindow.image = tkwindow.canvas.create_image( 256/scalex*int(oldp[0]/(256/scalex)), 256/scalex*int(oldp[1]/(256/scalex)), anchor=tk.NW, image=photo, tags=["tile"] )
+    tkwindow.image = tkwindow.canvas.create_image(256/scalex*int(oldp[0]/(256/scalex)), 256/scalex*int(oldp[1]/(256/scalex)), anchor=tk.NW, image=photo, tags=["tile"] )
     image_storage.append( photo ) # need to save to avoid garbage collection
 
     # This arrenges the stuff being shown
@@ -237,38 +236,56 @@ def draw_objects():
     # Code to move the drone is here
     # Move a small amount by changing tx,ty
 
-    # Initialize common variables for all Algorithms:
+    # STEP 1: Initialize common variables for all Algorithms and keep track of stats:
     # For example check if we are on a different tile
     new_tile_x = 256/scalex*int(oldp[0]/(256/scalex))
     new_tile_y = 256/scalex*int(oldp[1]/(256/scalex))
     tile_change = new_tile_x != previous_tile_x or new_tile_y != previous_tile_y
     if tile_change:
-        all_tiles.add((new_tile_x, new_tile_y))
+        if (new_tile_x, new_tile_y) not in all_tiles:
+            classification_count[class_index] += 1  #counts the amount of urban, water, arable, desert seen
+            all_tiles.add((new_tile_x, new_tile_y))
         total_tile_changes += 1
 
 
-    # DECIDE WHICH ALGORITHM TO USE (1 to 3)
-    tx, ty = browninan_motion(class_index)
+    # STEP 2: DECIDE WHICH ALGORITHM TO USE (1 to 3)
+    tx, ty = browninan_motion(class_index, 1)
+    #tx, ty = boustrophedon_sweep()
     #tx, ty = random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, previous_tile_x, previous_tile_y, tile_change)
     #tx, ty = wall_following_lawn_mover(tx,ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize)
 
 
-    # Final part of all algorithms: Limit path length to a certain distance for comparison and the output stats
+    # STEP 3: Final part of all algorithms: Limit path length to a certain distance for comparison and the output stats
     previous_tile_x = new_tile_x
     previous_tile_y = new_tile_y
     if total_path_length > max_path_length:
         tx, ty = 0, 0
         font = tkFont.Font(size='20')
+        text = """Simulation over.
+                    Distance covered: %d
+                    Unique tiles visited: %d
+                    Total tiles visited: %d
+                    Unique Tiles/Total Tiles ratio: %.1f
+                    Coverage ratio: %.5f
+                    Urban Ratio: %.1f
+                    Arable Ratio: %.1f
+                    Water Ratio: %.1f"""
         tkwindow.canvas.create_text(220, 100, fill='white', font=font,
-                                    text="Simulation over.\nDistance covered: %f\nUnique tiles visited: %d\nTotal tiles visited: %d\nRatio: %f"
-                                         % (total_tile_changes, len(all_tiles), total_tile_changes, len(all_tiles) / float(total_tile_changes)))
+                                    text=text % (max_path_length, len(all_tiles), total_tile_changes,
+                                                len(all_tiles) / float(total_tile_changes),
+                                                (100 * len(all_tiles) / float(22 * 22)), #since we also count out of border tiles
+                                                (100 * classification_count[2] / float(len(all_tiles))),
+                                                (100 * classification_count[0] / float(len(all_tiles))),
+                                                (100 * classification_count[3] / float(len(all_tiles)))))
+
+
     else:
         total_path_length += math.sqrt(tx ** 2 + ty ** 2)
 
 
 # MY PATH PLANNING ALGORITHMS
-#Algorithm1: Brownian Algorithm
-def browninan_motion(class_index):
+#Algorithm 1: Brownian Algorithm (two versions, 0, 1)
+def browninan_motion(class_index, version):
     global vx, vy, ax, ay
 
     # Wall and Boundaries avoidance
@@ -280,15 +297,21 @@ def browninan_motion(class_index):
         ax = -ax
         ay = -ay
     else:
-        ax = min(max(ax + random.uniform(5,-5), -5),5)
-        ay = min(max(ay + random.uniform(5,-5), -5),5)
-        vx = min(max(vx + ax, -5), 5)
-        vy = min(max(vy + ay, -5), 5)
+        if version == 1:
+            ax = random.uniform(3,-3)
+            ay = random.uniform(3,-3)
+        else:
+            ax = min(max(ax + random.uniform(5,-5), -5),5)
+            ay = min(max(ay + random.uniform(5,-5), -5),5)
+
+        vx = min(max(vx + ax, -7), 7)
+        vy = min(max(vy + ay, -7), 7)
 
     return vx, vy
 
 
-#Algorithm2: Simple Boustrophedon sweeping
+#Algorithm Test: Simple Boustrophedon sweeping
+#This is just a proof of concept and not used anywhere
 def boustrophedon_sweep():
     global theta
     tx = -1
@@ -297,7 +320,7 @@ def boustrophedon_sweep():
     return tx, ty
 
 
-#Algorithm3: Random Lawn Mover Copy
+#Algorithm 2: Random Lawn Mover Copy
     #Idea: pick a direction and go straight, once you detect urban area, or the border of the map
     #      pick a new direction and go straight again.
     #Implementation: the only difficulty is to correctly detect from which direction we are coming, in order
@@ -313,12 +336,10 @@ def random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, old_tile_
 
     # Here we suppose small movements (i.e it is not possible to enter a tile from two directions.
     # This is not quite true as this situation arrises occasionaly however it doesn't affect the outcome greatly
-
     if takeoff:
         theta = random.uniform(0, 2 * math.pi)
 
     elif city or out_of_bounds:
-
         # came from left
         if old_tile_x < new_tile_x or oldp[0] >= myImageSize:
             theta = random.uniform(math.pi, 2.0 * math.pi)
@@ -349,22 +370,22 @@ def random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, old_tile_
 
 # Algorithm 4: deterministic "hand on wall " lawn mover " algorithm (spiral shape)
 # Note: This algorithm corresponds to what I would personally do when moving the lawn,
-#       the other option would be a boustrophedon back and forth coverage.
-#       The running time can be exponentially worse than optimal,
-#       for example when two small patches are connected by a long one tile wide path.
-#       Nonetheless since in most cases it avoids passing twice at the same place it should
-#       not be too bad in practice.
+# the other option would be a boustrophedon back and forth coverage.
+# The running time can be exponentially worse than optimal,
+# for example when two small patches are connected by a long one tile wide path.
+# Nonetheless since in most cases it avoids passing twice at the same place it should
+# not be too bad in practice.
 def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize):
     global tmp_tiles
     global wall_found
     global backtrack
-    global visited_tiles
+    global tiles_to_avoid
     global first_tile_of_circuit
     global goRight
 
     if initialize:
         tmp_tiles = set()
-        visited_tiles = set()
+        tiles_to_avoid = set()
         wall_found = 0
         backtrack = 0
         first_tile_of_circuit = (-1,-1)
@@ -375,8 +396,7 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
     out_of_bounds = oldp[0] >= 1020 or oldp[0] <= 0 or oldp[1] >= 1020 or oldp[1] <= 0
 
     # Backtrack one step if out_of bounds
-    print(new_tile_x, new_tile_y)
-    if (city or out_of_bounds or (new_tile_x, new_tile_y) in visited_tiles) and not backtrack:
+    if (city or out_of_bounds or (new_tile_x, new_tile_y) in tiles_to_avoid) and not backtrack:
         if not wall_found:
             first_tile_of_circuit = (previous_tile_x, previous_tile_y)  # fixme
             print("FIRST TILE OF CIRCUIT", first_tile_of_circuit)
@@ -386,9 +406,11 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
         wall_found = 1
         backtrack = 2
 
+    # This condition handles avoiding previously visited tiles, but only after a complete circuit!
+    # I.e it checks if we are back at the start and prepares for a new round.
     if not backtrack and tile_change and (new_tile_x, new_tile_y) == first_tile_of_circuit and len(tmp_tiles) > 10:
-        visited_tiles = visited_tiles.union(tmp_tiles)
-        visited_tiles.remove((previous_tile_x, previous_tile_y))
+        tiles_to_avoid = tiles_to_avoid.union(tmp_tiles)
+        tiles_to_avoid.remove((previous_tile_x, previous_tile_y))
         tmp_tiles = set()
         first_tile_of_circuit = (previous_tile_x, previous_tile_y)
         print("back to the start!")
@@ -396,8 +418,11 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
         ty = -ty
         backtrack = 2
 
-    # Try to go right all the time
-    if wall_found and (backtrack == 1 or goRight < 0):
+    # Try to go right all the time, EXCEPT if we know that there is a visited tile
+    future_tile_x = 256 / scalex * (int(oldp[0] - ty) / (256 / scalex))
+    future_tile_y = 256 / scalex * (int(oldp[1] + tx) / (256 / scalex))
+
+    if wall_found and (backtrack == 1 or goRight < 0) and (future_tile_x, future_tile_y) not in tiles_to_avoid:
         old_ty = ty
         ty = tx
         tx = -old_ty
@@ -410,7 +435,7 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
     if wall_found and tile_change:
         tmp_tiles.add((new_tile_x, new_tile_y))
         # Note possible improvement: remove tile if we pass it in the opposite direction,
-        #       since that would imply that we possible need this path to get to a larger patch that wasn't discovered yet!
+        # since that would imply that we possible need this path to get to a larger patch that wasn't discovered yet!
 
     return tx, ty
 
