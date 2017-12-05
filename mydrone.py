@@ -150,12 +150,12 @@ total_path_length = 0
 all_tiles = set()
 total_tile_changes = 0
 
-
-# Added Variables for simple random Algorithms (1-3)
+# Added Variables for simple random Algorithms (1-2)
 theta = math.pi / 2
 ax, ay, vx, vy = 0, 0, 0, 0
 
-# Added Variables for wallFollower Algorithm (4)
+
+# Added Variables for wallFollower Algorithm (3)
 tmp_tiles = set()
 wall_found = 0
 backtrack = 0
@@ -213,12 +213,11 @@ def draw_objects():
 
     # Print text to show the classification of the tile
     text = ("A", "D", "U", "W")[class_index]
-    color = ("white", "yellow", "red", "blue")[class_index]
-
+    color = ("spring green", "sandy brown", "orange red", "deep sky blue")[class_index]
     tkwindow.canvas.create_text(256/scalex*int(oldp[0]/(256/scalex))+10, 256/scalex*int(oldp[1]/(256/scalex))+10, fill=color, text=text)
 
     # This is the drone, let's move it around
-    tkwindow.canvas.itemconfig(objectId, tag='userball', fill=fill)
+    tkwindow.canvas.itemconfig(objectId, tag='userball', fill=color)
     tkwindow.canvas.drawn = objectId
 
     #  Take the tile and shrink it to go in the right place
@@ -235,7 +234,7 @@ def draw_objects():
     tkwindow.canvas.tag_lower( "background" )
     tkwindow.canvas.pack()
 
-    # Code to move the drone can go here
+    # Code to move the drone is here
     # Move a small amount by changing tx,ty
 
     # Initialize common variables for all Algorithms:
@@ -248,48 +247,45 @@ def draw_objects():
         total_tile_changes += 1
 
 
-    # DECIDE WHICH ALGORITHM TO USE (1 to 4)
-    #tx, ty = browninan_motion()
-    #tx, ty = boustrophedon_sweep()
+    # DECIDE WHICH ALGORITHM TO USE (1 to 3)
+    tx, ty = browninan_motion(class_index)
     #tx, ty = random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, previous_tile_x, previous_tile_y, tile_change)
-    tx, ty = wall_following_lawn_mover(tx,ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize)
+    #tx, ty = wall_following_lawn_mover(tx,ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize)
 
 
-    # COMMON PART TO ALL ALGORITHMS: Limit path length to a certain distance for comparison and output stats
+    # Final part of all algorithms: Limit path length to a certain distance for comparison and the output stats
     previous_tile_x = new_tile_x
     previous_tile_y = new_tile_y
     if total_path_length > max_path_length:
         tx, ty = 0, 0
         font = tkFont.Font(size='20')
-        tkwindow.canvas.create_text(200,
-                                    100, fill='white',
-                                    font=font,
-                                    text="Simulation over.\nUnique tiles visited: %d\nTotal tiles visited: %d\nRatio: %f"
-                                         % (len(all_tiles), total_tile_changes, len(all_tiles) / float(total_tile_changes)))
+        tkwindow.canvas.create_text(220, 100, fill='white', font=font,
+                                    text="Simulation over.\nDistance covered: %f\nUnique tiles visited: %d\nTotal tiles visited: %d\nRatio: %f"
+                                         % (total_tile_changes, len(all_tiles), total_tile_changes, len(all_tiles) / float(total_tile_changes)))
     else:
         total_path_length += math.sqrt(tx ** 2 + ty ** 2)
-
-    print(total_path_length)
 
 
 # MY PATH PLANNING ALGORITHMS
 #Algorithm1: Brownian Algorithm
-def browninan_motion():
+def browninan_motion(class_index):
     global vx, vy, ax, ay
-    #Option 1
-    tx = random.uniform(8,-8)
-    ty = random.uniform(8,-8)
 
-    #Option 2
-    ax = min(max(ax + random.uniform(5,-5), -5),5)
-    ay = min(max(ay + random.uniform(5,-5), -5),5)
-    vx = min(max(vx + ax, -5), 5)
-    vy = min(max(vy + ay, -5), 5)
-    tx = vx
-    ty = vy
+    # Wall and Boundaries avoidance
+    city = class_index == 2
+    out_of_bounds = oldp[0] >= myImageSize or oldp[0] <= 0 or oldp[1] >= myImageSize or oldp[1] <= 0
+    if city or out_of_bounds:
+        vx = -vx
+        vy = -vy
+        ax = -ax
+        ay = -ay
+    else:
+        ax = min(max(ax + random.uniform(5,-5), -5),5)
+        ay = min(max(ay + random.uniform(5,-5), -5),5)
+        vx = min(max(vx + ax, -5), 5)
+        vy = min(max(vy + ay, -5), 5)
 
-    #Option 3: with wall avoidance
-    return tx, ty
+    return vx, vy
 
 
 #Algorithm2: Simple Boustrophedon sweeping
