@@ -376,6 +376,7 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
     global goRight
 
     check_right_distance = 30 #arbitrary constant (should correspond to less than a tile size)
+    initial_speed = (10, 0)
 
     if initialize:
         tmp_tiles = set()
@@ -384,7 +385,7 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
         backtrack = 0
         first_tile_of_circuit = (-1,-1)
         goRight = 0
-        tx, ty = 10, 0 #IMPORTANT: set initial speed
+        tx, ty = initial_speed #IMPORTANT: set initial speed
 
     # Booleans indicate if in city or out of bounds
     city = class_index == 2
@@ -498,8 +499,8 @@ MYRADIUS = 7
 MARK="mark"
 
 # Place our simulated drone on the map
-#sx,sy=600,640 # over the river
-sx,sy = 220,280 # over the canal in Verdun, mixed environment
+sx,sy=600,640 # over the river
+#sx,sy = 220,280 # over the canal in Verdun, mixed environment
 oldp = [sx,sy]
 objectId = tkwindow.canvas.create_oval(int(sx-MYRADIUS),int(sy-MYRADIUS), int(sx+MYRADIUS),int(sy+MYRADIUS),tag=MARK)
 unmoved =  1
