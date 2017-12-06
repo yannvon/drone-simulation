@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ff4102a9-be3f-4a93-a496-2692bf5dcd2a" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Assignment4.odt" afterPath="$PROJECT_DIR$/Assignment4.odt" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/mytemp.gif" afterPath="$PROJECT_DIR$/mytemp.gif" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/mydrone.py" afterPath="$PROJECT_DIR$/mydrone.py" />
@@ -30,8 +31,8 @@
       <file leaf-file-name="mydrone.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/mydrone.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-139">
-              <caret line="480" column="19" lean-forward="false" selection-start-line="480" selection-start-column="19" selection-end-line="480" selection-end-column="19" />
+            <state relative-caret-position="6602">
+              <caret line="436" column="29" lean-forward="true" selection-start-line="436" selection-start-column="29" selection-end-line="436" selection-end-column="29" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -42,7 +43,7 @@
       <file leaf-file-name="TileServer.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/TileServer.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
+            <state relative-caret-position="2016">
               <caret line="117" column="16" lean-forward="false" selection-start-line="117" selection-start-column="16" selection-end-line="117" selection-end-column="16" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
@@ -76,8 +77,8 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/geoclass.py" />
-        <option value="$PROJECT_DIR$/mydrone.py" />
         <option value="$PROJECT_DIR$/TileServer.py" />
+        <option value="$PROJECT_DIR$/mydrone.py" />
       </list>
     </option>
   </component>
@@ -102,6 +103,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -113,8 +116,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
-      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -207,7 +208,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4392">
           <caret line="251" column="18" lean-forward="false" selection-start-line="251" selection-start-column="18" selection-end-line="251" selection-end-column="18" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -253,7 +253,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="4392">
           <caret line="251" column="18" lean-forward="false" selection-start-line="251" selection-start-column="18" selection-end-line="251" selection-end-column="18" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -648,7 +647,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-2628">
           <caret line="53" column="10" lean-forward="false" selection-start-line="53" selection-start-column="10" selection-end-line="53" selection-end-column="10" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -664,7 +662,7 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/TileServer.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
+        <state relative-caret-position="2016">
           <caret line="117" column="16" lean-forward="false" selection-start-line="117" selection-start-column="16" selection-end-line="117" selection-end-column="16" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
@@ -674,8 +672,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/mydrone.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-139">
-          <caret line="480" column="19" lean-forward="false" selection-start-line="480" selection-start-column="19" selection-end-line="480" selection-end-column="19" />
+        <state relative-caret-position="6602">
+          <caret line="436" column="29" lean-forward="true" selection-start-line="436" selection-start-column="29" selection-end-line="436" selection-end-column="29" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>

@@ -139,7 +139,7 @@ while len(sys.argv)>1:
 # my position
 tx,ty = 0.5,0.5 # This is the translation to use to move the drone
 oldp = [tx,ty]  # Last point visited
-max_path_length = 5000
+max_path_length = 20000
 
 # Added Variables common to all Algorithms
 fill = "white"
@@ -166,7 +166,7 @@ goRight = 0
 def autodraw():
     """ Automatic draw. """
     draw_objects()
-    tkwindow.canvas.after(1, autodraw)
+    tkwindow.canvas.after(100, autodraw)
 
 def draw_objects():
     """ Draw target balls or stuff on the screen. """
@@ -366,7 +366,7 @@ def random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, old_tile_
 # The running time can be exponentially worse than optimal,
 # for example when two small patches are connected by a long one tile wide path.
 # Nonetheless since in most cases it avoids passing twice at the same place it should
-# not be too bad in practice.
+# not be too bad in practice, though it is not complete!
 def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize):
     global tmp_tiles
     global wall_found
@@ -374,6 +374,8 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
     global tiles_to_avoid
     global first_tile_of_circuit
     global goRight
+
+    check_right_distance = 30 #arbitrary constant (should correspond to less than a tile size)
 
     if initialize:
         tmp_tiles = set()
@@ -384,17 +386,17 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
         goRight = 0
         tx, ty = 10, 0 #IMPORTANT: set initial speed
 
+    # Booleans indicate if in city or out of bounds
     city = class_index == 2
-    out_of_bounds = oldp[0] >= 1020 or oldp[0] <= 0 or oldp[1] >= 1020 or oldp[1] <= 0
+    out_of_bounds = oldp[0] >= myImageSize - 4 or oldp[0] <= 0 or oldp[1] >= myImageSize - 4 or oldp[1] <= 0
 
-    # Conditions of backtracking one step if out_of bounds
+    # Conditions of backtracking one step if out_of bounds or already visited tiles
     if (city or out_of_bounds or (new_tile_x, new_tile_y) in tiles_to_avoid) and not backtrack:
         if not wall_found:
             first_tile_of_circuit = (previous_tile_x, previous_tile_y)
-
         tx = -tx
         ty = -ty
-        goRight = 35
+        goRight = check_right_distance #magic number
         wall_found = 1
         backtrack = 2
 
@@ -414,15 +416,18 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
     future_tile_y = 256 / scalex * (int(oldp[1] + tx) / (256 / scalex))
 
     if wall_found and (backtrack == 1 or goRight < 0) and (future_tile_x, future_tile_y) not in tiles_to_avoid:
+        # change direction
         old_ty = ty
         ty = tx
         tx = -old_ty
-        goRight = 35
+        goRight = check_right_distance
         backtrack = 0
     else:
+        # stay on same direction
         goRight -= math.sqrt(tx ** 2 + ty ** 2)
         backtrack = max(0, backtrack - 1)
 
+    # add visited tiles
     if wall_found and tile_change:
         tmp_tiles.add((new_tile_x, new_tile_y))
 
@@ -493,8 +498,8 @@ MYRADIUS = 7
 MARK="mark"
 
 # Place our simulated drone on the map
-sx,sy=600,640 # over the river
-#sx,sy = 220,280 # over the canal in Verdun, mixed environment
+#sx,sy=600,640 # over the river
+sx,sy = 220,280 # over the canal in Verdun, mixed environment
 oldp = [sx,sy]
 objectId = tkwindow.canvas.create_oval(int(sx-MYRADIUS),int(sy-MYRADIUS), int(sx+MYRADIUS),int(sy+MYRADIUS),tag=MARK)
 unmoved =  1
