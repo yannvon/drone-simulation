@@ -139,7 +139,7 @@ while len(sys.argv)>1:
 # my position
 tx,ty = 0.5,0.5 # This is the translation to use to move the drone
 oldp = [tx,ty]  # Last point visited
-max_path_length = 200
+max_path_length = 5000
 
 # Added Variables common to all Algorithms
 fill = "white"
@@ -166,7 +166,7 @@ goRight = 0
 def autodraw():
     """ Automatic draw. """
     draw_objects()
-    tkwindow.canvas.after(100, autodraw)
+    tkwindow.canvas.after(1, autodraw)
 
 def draw_objects():
     """ Draw target balls or stuff on the screen. """
@@ -227,7 +227,7 @@ def draw_objects():
     tkwindow.image = tkwindow.canvas.create_image(256/scalex*int(oldp[0]/(256/scalex)), 256/scalex*int(oldp[1]/(256/scalex)), anchor=tk.NW, image=photo, tags=["tile"] )
     image_storage.append( photo ) # need to save to avoid garbage collection
 
-    # This arrenges the stuff being shown
+    # This arranges the stuff being shown
     tkwindow.canvas.lift( objectId )
     tkwindow.canvas.tag_lower( "tile" )
     tkwindow.canvas.tag_lower( "background" )
@@ -249,10 +249,10 @@ def draw_objects():
 
 
     # STEP 2: DECIDE WHICH ALGORITHM TO USE (1 to 3)
-    tx, ty = browninan_motion(class_index, 1)
+    #tx, ty = browninan_motion(class_index, 1)
     #tx, ty = boustrophedon_sweep()
     #tx, ty = random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, previous_tile_x, previous_tile_y, tile_change)
-    #tx, ty = wall_following_lawn_mover(tx,ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize)
+    tx, ty = wall_following_lawn_mover(tx,ty, class_index, new_tile_x, new_tile_y, tile_change, previous_tile_x, previous_tile_y, initialize)
 
 
     # STEP 3: Final part of all algorithms: Limit path length to a certain distance for comparison and the output stats
@@ -261,16 +261,18 @@ def draw_objects():
     if total_path_length > max_path_length:
         tx, ty = 0, 0
         font = tkFont.Font(size='20')
-        text = """Simulation over.
-                    Distance covered: %d
-                    Unique tiles visited: %d
-                    Total tiles visited: %d
-                    Unique Tiles/Total Tiles ratio: %.1f
-                    Coverage ratio: %.5f
-                    Urban Ratio: %.1f
-                    Arable Ratio: %.1f
-                    Water Ratio: %.1f"""
-        tkwindow.canvas.create_text(220, 100, fill='white', font=font,
+        text = """
+                Simulation over.
+                Distance covered [pixels]: %d
+                Unique tiles visited: %d
+                Total tiles visited: %d
+                Unique Tiles/Total Tiles ratio: %.2f
+                Coverage ratio [%%]: %.2f
+                Urban Ratio [%%]: %.1f
+                Arable Ratio [%%]: %.1f
+                Water Ratio [%%]: %.1f"""
+
+        tkwindow.canvas.create_text(220, 150, fill='white', font=font,
                                     text=text % (max_path_length, len(all_tiles), total_tile_changes,
                                                 len(all_tiles) / float(total_tile_changes),
                                                 (100 * len(all_tiles) / float(22 * 22)), #since we also count out of border tiles
@@ -343,25 +345,15 @@ def random_lawn_mover(class_index, initialize, new_tile_x, new_tile_y, old_tile_
         # came from left
         if old_tile_x < new_tile_x or oldp[0] >= myImageSize:
             theta = random.uniform(math.pi, 2.0 * math.pi)
-            print('from left')
         # came from right
         elif old_tile_x > new_tile_x or oldp[0] <= 0:
-            print('from right')
             theta = random.uniform(0, math.pi)
         # came from top
         elif old_tile_y < new_tile_y or oldp[1] >= myImageSize:
             theta = random.uniform(math.pi / 2, 3.0 / 2.0 * math.pi)
-            print('from top')
         # came from bottom
         elif old_tile_y > new_tile_y or oldp[1] <= 0:
             theta = random.uniform(-math.pi / 2, math.pi / 2)
-            print('from bot')
-
-    if out_of_bounds and not tile_change:
-        print('woah no tile change to out of bounds')
-
-    if out_of_bounds:
-        print('out of bounds')
 
     tx = cruising_speed * math.sin(theta)
     ty = cruising_speed * math.cos(theta)
@@ -395,11 +387,11 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
     city = class_index == 2
     out_of_bounds = oldp[0] >= 1020 or oldp[0] <= 0 or oldp[1] >= 1020 or oldp[1] <= 0
 
-    # Backtrack one step if out_of bounds
+    # Conditions of backtracking one step if out_of bounds
     if (city or out_of_bounds or (new_tile_x, new_tile_y) in tiles_to_avoid) and not backtrack:
         if not wall_found:
-            first_tile_of_circuit = (previous_tile_x, previous_tile_y)  # fixme
-            print("FIRST TILE OF CIRCUIT", first_tile_of_circuit)
+            first_tile_of_circuit = (previous_tile_x, previous_tile_y)
+
         tx = -tx
         ty = -ty
         goRight = 35
@@ -413,7 +405,6 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
         tiles_to_avoid.remove((previous_tile_x, previous_tile_y))
         tmp_tiles = set()
         first_tile_of_circuit = (previous_tile_x, previous_tile_y)
-        print("back to the start!")
         tx = -tx
         ty = -ty
         backtrack = 2
@@ -434,8 +425,6 @@ def wall_following_lawn_mover(tx, ty, class_index, new_tile_x, new_tile_y, tile_
 
     if wall_found and tile_change:
         tmp_tiles.add((new_tile_x, new_tile_y))
-        # Note possible improvement: remove tile if we pass it in the opposite direction,
-        # since that would imply that we possible need this path to get to a larger patch that wasn't discovered yet!
 
     return tx, ty
 
@@ -471,7 +460,7 @@ bigpic = Image.new("RGB", (256*tilesX, 256*tilesY), "white")
 bigpic.paste(actual, (0,0))  # paste the actual map over the pic.
 
 # How to draw a rectangle.
-# You should delete or comment out the next 3 lines.    #FIXME
+# You should delete or comment out the next 3 lines.
 #draw = ImageDraw.Draw(bigpic)
 #xt,yt = 0,0
 #draw.rectangle(((xt*256-1, yt*256-1), (xt*256+256+1, yt*256+256+1)), fill="red")
